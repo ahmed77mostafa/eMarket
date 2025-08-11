@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using DataAccessLayer.DTO.FeedbackDTO;
 using DataAccessLayer.Entities;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Task1.Data;
 
@@ -11,23 +12,23 @@ namespace PresentationLayer.Controllers
     public class FeedbackController: ControllerBase
     {
         private readonly IMapper _mapper;
-        private readonly AppDbContext _context;
-
-        public FeedbackController(IMapper mapper, AppDbContext context)
+        private readonly IBaseRepository<Feedback> _feedbackRepo;
+        public FeedbackController(IMapper mapper, IBaseRepository<Feedback> feedbackRepo)
         {
             _mapper = mapper;
-            _context = context;
+            _feedbackRepo = feedbackRepo;
         }
 
-        [HttpPost]
-        public IActionResult AddFeedback(RequestFeedbackDTO feedbackDTO)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
         {
-            var insertMapper = _mapper.Map<Feedback>(feedbackDTO);
+            return Ok(await _feedbackRepo.GetById(id));
+        }
 
-            _context.Feedbacks.Add(insertMapper);
-            _context.SaveChanges();
-
-            return Ok();
+        [HttpGet("GetByName")]
+        public async Task<IActionResult> GetByName(string name)
+        {
+            return Ok(await _feedbackRepo.FindAll(c => c.Username.Contains(name), new[] { "Product" }));
         }
     }
 }

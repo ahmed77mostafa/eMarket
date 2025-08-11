@@ -1,7 +1,7 @@
-﻿using BusinessLogicLayer.Services.IService;
-using DataAccessLayer.DTO.ProductDTO;
+﻿using BusinessLogicLayer.Consts;
+using BusinessLogicLayer.Services.IService;
 using DataAccessLayer.Entities;
-using Microsoft.AspNetCore.Http;
+using DataAccessLayer.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PresentationLayer.Controllers
@@ -31,48 +31,54 @@ namespace PresentationLayer.Controllers
         //    _repo.AddProduct(product);
         #endregion  
 
-        private readonly IProductService _service;
+        private readonly IBaseRepository<Product> _productRepo;
         private readonly IJwtService _jwtService;
         private readonly ILogger<ProductController> _logger;
 
-        public ProductController(IProductService service, IJwtService jwtService, ILogger<ProductController> logger)
+        public ProductController(IJwtService jwtService, ILogger<ProductController> logger, IBaseRepository<Product> productRepo)
         {
-            _service = service;
             _jwtService = jwtService;
             _logger = logger;
+            _productRepo = productRepo;
+        }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            return Ok(await _productRepo.GetById(id));
         }
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAllProducts()
         {
-            _logger.LogInformation("Hi from action!");
-            try
-            {
-                var products = await _service.getAll();
-                if (products == null || !products.Any())
-                {
-                    return NotFound("No products found.");
-                }
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                // Log the exception (not shown here)
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving products.");
-            }
+            return Ok(await _productRepo.GetAll());
         }
+        [HttpGet("GetOrdered")]
+        public IActionResult GetOrdered()
+        {
+            return Ok(_productRepo.FindAllAsync(b => b.Name.Contains("p"), null, null, b => b.Id, OrderBy.Descending));
+        }
+
         [HttpPost]
-        public async Task<IActionResult> AddProduct(RequestProductDTO productDTO)
+        public async Task<IActionResult> AddProduct([FromBody] Product product)
         {
-            await _service.AddProduct(productDTO);
-            return Ok();
+            if (product == null)
+            {
+                return BadRequest("Product cannot be null");
+            }
+
+            await _productRepo.Add(product);
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
         }
-        [HttpDelete("{id}")]
-        public IActionResult DeleteProducts(int id)
+        [HttpPost("AddRange")]
+        public async Task<IActionResult> AddRange(IEnumerable<Product> products)
         {
-            var product =  _service.DeleteProduct(id);
-            if (product)
-                return Ok("Done");
-            return NotFound();
+            if (products == null || !products.Any())
+            {
+                return BadRequest("Products cannot be null or empty");
+            }
+
+            await _productRepo.AddRange(products);
+            return CreatedAtAction(nameof(GetAllProducts), products);
         }
-    }   
+
+    }
 }

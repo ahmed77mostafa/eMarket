@@ -14,12 +14,7 @@ using Task1.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Serilog
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration) // Use builder.Configuration directly
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+builder.Host.UseSerilog((context, config) => config.ReadFrom.Configuration(context.Configuration));
 
 // Add services to the container.
 builder.Services.AddControllers(options =>
@@ -75,16 +70,12 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("dbConnection"),
-    x => x.MigrationsAssembly("PresentationLayer")));
+        x => x.MigrationsAssembly("PresentationLayer")));   
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 
-builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IFeedbackRepo, FeedbackRepo>();
-builder.Services.AddScoped<IProductRepo, ProductRepo>();
-builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddTransient(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 
 WebApplication? app = null;
 try

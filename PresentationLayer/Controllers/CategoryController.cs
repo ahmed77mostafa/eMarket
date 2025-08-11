@@ -1,12 +1,6 @@
-﻿using AutoMapper;
-using BusinessLogicLayer.Services.IService;
-using DataAccessLayer.DTO.CategoryDTO;
-using DataAccessLayer.Entities;
-using DataAccessLayer.Filters;
+﻿using DataAccessLayer.Entities;
 using DataAccessLayer.Repositories.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Task1.Data;
 
 namespace PresentationLayer.Controllers
 {
@@ -14,43 +8,37 @@ namespace PresentationLayer.Controllers
     [ApiController]
     public class CategoryController : ControllerBase
     {
-        private readonly ICategoryService _service;
         private readonly ILogger<CategoryController> _logger;
-        public CategoryController(ILogger<CategoryController> logger, ICategoryService service)
+        private readonly IBaseRepository<Category> _categoryRepo;
+        public CategoryController(ILogger<CategoryController> logger, IBaseRepository<Category> categoryRepo)
         {
             _logger = logger;
-            _service = service;
+            _categoryRepo = categoryRepo;
         }
 
-        [HttpGet]
-        //[LogSensitiveAction]
-        public async Task<IActionResult> GetAllCategories()
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
         {
-            _logger.LogInformation("Fetching all categories.");
-            var categories = await _service.GetAllCategories();
-            return Ok(categories);
+            var category = await _categoryRepo.GetById(id);
+            if (category == null)
+            {
+                return NotFound();
+            }
+            return Ok(category);
+        }
+        //[LogSensitiveAction]
+
+        #region
+        //[HttpGet]
+        //[Route("{key}")]
+        //public IActionResult GetById([FromRoute(Name = "key")] int id)
+        #endregion
+
+        [HttpGet("GetByName")]
+        public async Task<IActionResult> GetByName(string name)
+        {
+            return Ok(await _categoryRepo.Find(c => c.Name == name, new[] {"Products"}));
         }
         
-
-        [HttpGet]
-        [Route("{key}")]
-        public IActionResult GetById([FromRoute(Name = "key")] int id)
-        {
-            return Ok();
-        }
-        [HttpPost]
-        public IActionResult AddCategory(RequestCategoryDTO categoryDTO)
-        {
-            //var insertMapper = _mapper.Map<Category>(categoryDTO);
-
-            //if (insertMapper == null)
-                return NotFound();
-
-            //_context.Categories.Add(insertMapper);
-            //_context.SaveChanges();
-
-            return Ok();
-        }
-
     }
 }
